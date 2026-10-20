@@ -6,6 +6,9 @@
   :root {
     --bg-canvas: #EEF1F6;
     --text-primary: #1E293B;
+    --font-caveat: 'Caveat', cursive;
+    --font-kalam: 'Kalam', cursive;
+    --font-patrick: 'Patrick Hand', cursive;
   }
 
   body {
@@ -65,11 +68,11 @@
     color: #000000 !important;
   }
 
-  aside, .no-print, header, button, .sidebar, .right-rail {
+  aside, .no-print, header, button, .sidebar, .right-rail, nav {
     display: none !important;
   }
 
-  .print-page {
+  .print-page, #revision-sheet-print {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -78,5 +81,10 @@
     color: #111827 !important;
     box-shadow: none !important;
     border: none !important;
+  }
+
+  /* Preserve KaTeX math in print */
+  .katex, .katex-display {
+    font-size: 1em !important;
   }
 }

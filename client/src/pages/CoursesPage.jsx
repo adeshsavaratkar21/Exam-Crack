@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import SubjectPYQModal from '../components/SubjectPYQModal';
+import ReferenceBooksModal from '../components/ReferenceBooksModal';
 
 export default function CoursesPage({
   selectedSubjectId,
@@ -29,6 +30,7 @@ export default function CoursesPage({
 }) {
   const [activeFolderId, setActiveFolderId] = useState(null);
   const [isPYQModalOpen, setIsPYQModalOpen] = useState(false);
+  const [isBooksModalOpen, setIsBooksModalOpen] = useState(false);
   const [courseFilter, setCourseFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectDetail, setSubjectDetail] = useState(null);
@@ -151,6 +153,14 @@ export default function CoursesPage({
             >
               <Target className="w-3.5 h-3.5 text-indigo-600" />
               Readiness Matrix
+            </button>
+            <button
+              onClick={() => setIsBooksModalOpen(true)}
+              className="px-4 py-2 rounded-2xl bg-amber-400 text-gray-950 font-black text-xs hover:bg-amber-300 shadow-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              title="Official College Prescribed Reference Textbooks & Lecture PPTs"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-gray-950" />
+              <span>Book / PPT</span>
             </button>
             <button
               onClick={() => setIsPYQModalOpen(true)}
@@ -381,7 +391,7 @@ export default function CoursesPage({
                         className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-800 font-bold text-xs hover:bg-gray-200 transition-colors flex items-center gap-1"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        Dual-AI Notes
+                        Notes
                       </button>
                     </div>
                   </div>
@@ -413,6 +423,15 @@ export default function CoursesPage({
           subjectCode={subjectDetail.code}
           subjectName={subjectDetail.name}
           onLaunchQuiz={(chId) => onLaunchQuizForChapter(chId)}
+        />
+
+        {/* Reference Textbooks & Syllabus Books Modal */}
+        <ReferenceBooksModal
+          isOpen={isBooksModalOpen}
+          onClose={() => setIsBooksModalOpen(false)}
+          subjectId={subjectDetail.id}
+          subjectCode={subjectDetail.code}
+          subjectName={subjectDetail.name}
         />
       </div>
     );

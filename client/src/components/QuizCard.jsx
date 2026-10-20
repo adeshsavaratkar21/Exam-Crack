@@ -146,7 +146,7 @@ export default function QuizCard({
             onClick={() => onGenerateNotes(quizData.chapter_id)}
             className="w-full md:w-auto py-2.5 px-5 rounded-full bg-accentNavy hover:bg-black text-white font-bold text-xs transition-colors shadow-sm"
           >
-            Review Dual-AI 1-Page Notes
+            Review Notes
           </button>
         </div>
       )}
@@ -197,46 +197,81 @@ export default function QuizCard({
           {currentQuestion.question_text}
         </p>
 
-        {/* Options List */}
-        <div className="space-y-3">
+        {/* Options List with uniform sizing and clear status badges */}
+        <div className="grid grid-cols-1 gap-3.5">
           {currentQuestion.options.map((opt, oIdx) => {
             const letter = String(opt.trim().substring(0, 1)).toUpperCase();
             const isUserChoice = selectedAnswers[currentQuestion.id] === letter || currentQuestion.user_answer === letter;
             const isCorrectOption = currentQuestion.correct_answer === letter;
 
-            let cardStyle = 'bg-[#F9FAFC] border-gray-200/90 hover:bg-gray-100 text-gray-800';
+            let cardStyle = 'bg-white border-gray-200/90 hover:border-gray-300 hover:bg-gray-50/60 text-gray-800';
+            let badgeComponent = null;
 
             if (isCompleted) {
-              if (isCorrectOption) {
-                cardStyle = 'bg-[#E8F8EE] border-emerald-400 text-emerald-950 font-bold';
+              if (isUserChoice && isCorrectOption) {
+                // Correctly chosen by student
+                cardStyle = 'bg-emerald-50/80 border-emerald-500 text-emerald-950 font-bold shadow-2xs ring-1 ring-emerald-500/30';
+                badgeComponent = (
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold text-[11px] flex items-center gap-1 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Your Answer (Correct)</span>
+                  </span>
+                );
               } else if (isUserChoice && !isCorrectOption) {
-                cardStyle = 'bg-[#FEE8E8] border-rose-300 text-rose-950 font-bold';
+                // Wrong choice chosen by student
+                cardStyle = 'bg-rose-50/80 border-rose-400 text-rose-950 font-bold shadow-2xs ring-1 ring-rose-400/30';
+                badgeComponent = (
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 border border-rose-300 font-extrabold text-[11px] flex items-center gap-1 shrink-0">
+                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Your Choice (Incorrect)</span>
+                  </span>
+                );
+              } else if (isCorrectOption) {
+                // Correct answer that student missed
+                cardStyle = 'bg-emerald-50/40 border-emerald-400 border-dashed text-emerald-900 font-bold';
+                badgeComponent = (
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-100/70 text-emerald-800 border border-emerald-300 font-bold text-[11px] flex items-center gap-1 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Correct Answer</span>
+                  </span>
+                );
+              } else {
+                // Other options
+                cardStyle = 'bg-gray-50/50 border-gray-200 text-gray-500 opacity-80';
               }
             } else if (isUserChoice) {
-              cardStyle = 'bg-[#FEF7DA] border-amber-300 text-gray-950 font-bold shadow-sm ring-1 ring-amber-300/60';
+              cardStyle = 'bg-amber-50/90 border-amber-400 text-gray-950 font-bold shadow-sm ring-2 ring-amber-300/70';
+              badgeComponent = (
+                <span className="px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-900 font-extrabold text-[10px] uppercase tracking-wider shrink-0">
+                  Selected
+                </span>
+              );
             }
 
             return (
               <div
                 key={oIdx}
                 onClick={() => handleSelectOption(letter)}
-                className={`p-4 rounded-2xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${cardStyle}`}
+                className={`p-4 rounded-2xl border min-h-[64px] flex items-center justify-between gap-3 cursor-pointer transition-all ${cardStyle}`}
               >
-                <div className="flex items-center gap-3.5">
-                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold border transition-colors ${
-                    isUserChoice ? 'bg-gray-950 text-white border-gray-950' : 'bg-white text-gray-700 border-gray-300'
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black border transition-colors shrink-0 ${
+                    isUserChoice 
+                      ? 'bg-gray-950 text-white border-gray-950' 
+                      : (isCompleted && isCorrectOption 
+                          ? 'bg-emerald-600 text-white border-emerald-600' 
+                          : 'bg-white text-gray-700 border-gray-300')
                   }`}>
                     {letter}
                   </span>
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-semibold leading-relaxed break-words">
                     {opt.replace(/^[A-Da-d]\)\s*/, '')}
                   </span>
                 </div>
 
-                {isCompleted && (
-                  <div>
-                    {isCorrectOption && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-                    {isUserChoice && !isCorrectOption && <XCircle className="w-5 h-5 text-rose-500" />}
+                {badgeComponent && (
+                  <div className="shrink-0 ml-2">
+                    {badgeComponent}
                   </div>
                 )}
               </div>

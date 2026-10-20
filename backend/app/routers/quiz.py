@@ -40,7 +40,8 @@ def generate_chapter_quiz(
         subject_name=subject.name,
         pyqs_context=pyq_texts,
         count=payload.num_questions or 10,
-        mode=payload.mode or "Standard"
+        mode=payload.mode or "Standard",
+        topics=chapter.topics
     )
 
     # Create Quiz record

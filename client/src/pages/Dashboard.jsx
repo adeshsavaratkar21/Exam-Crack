@@ -23,12 +23,15 @@ export default function Dashboard({
   selectedSubjectId, 
   setSelectedSubjectId,
   subjects = [], 
+  initialLoading = false,
+  initialError = null,
+  onRetryInitial,
   onNavigateTab,
   onLaunchQuizForChapter,
   onViewNotesForChapter
 }) {
   const [readinessData, setReadinessData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const currentSubject = subjects.find(s => s.id === Number(selectedSubjectId)) || subjects[0];
 
@@ -42,12 +45,34 @@ export default function Dashboard({
       .finally(() => setLoading(false));
   }, [selectedSubjectId]);
 
-  if (loading && subjects.length === 0) {
+  if (initialLoading && subjects.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-gray-950 animate-spin" />
-          <p className="text-xs font-semibold text-gray-500">Loading student dashboard...</p>
+          <div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-amber-500 animate-spin" />
+          <p className="text-xs font-semibold text-gray-500">Connecting to ExamPrep backend...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (subjects.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] p-6">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-gray-200 shadow-sm p-6 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto text-xl">
+            ⚡
+          </div>
+          <h3 className="text-base font-bold text-gray-900">Waiting for Backend Connection</h3>
+          <p className="text-xs text-gray-500">
+            {initialError ? `Error: ${initialError}` : 'The frontend could not connect to the FastAPI backend at http://127.0.0.1:8000.'}
+          </p>
+          <button
+            onClick={() => onRetryInitial && onRetryInitial()}
+            className="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-gray-950 font-semibold text-xs rounded-xl transition-colors shadow-sm"
+          >
+            Retry Connection Now
+          </button>
         </div>
       </div>
     );

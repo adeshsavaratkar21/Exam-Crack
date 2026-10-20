@@ -24,6 +24,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [urgentTopicsCount, setUrgentTopicsCount] = useState(0);
 
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialError, setInitialError] = useState(null);
+
   // Student Profile state loaded from localStorage with default fallback
   const [studentProfile, setStudentProfile] = useState(() => {
     try {
@@ -47,6 +50,8 @@ export default function App() {
 
   // Fetch subjects and API status on launch
   const loadInitialData = async () => {
+    setInitialLoading(true);
+    setInitialError(null);
     try {
       const [subjectsRes, statusRes] = await Promise.all([
         api.getSubjects(),
@@ -55,8 +60,8 @@ export default function App() {
 
       const subList = subjectsRes.data || [];
       setSubjects(subList);
-      if (subList.length > 0 && !selectedSubjectId) {
-        setSelectedSubjectId(subList[0].id);
+      if (subList.length > 0) {
+        setSelectedSubjectId(prev => prev || subList[0].id);
       }
       setApiStatus(statusRes.data);
 
@@ -67,6 +72,9 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to load initial data:', err);
+      setInitialError(err.message || 'Unable to connect to backend server');
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -87,25 +95,22 @@ export default function App() {
   const currentSubject = subjects.find(s => s.id === Number(selectedSubjectId)) || subjects[0];
 
   return (
-    <div className="min-h-screen bg-[#EEF1F6] flex justify-center p-0 sm:p-4 lg:p-6 text-gray-900 font-sans">
-      {/* Main Unified App Canvas (matching reference card container) */}
-      <div className="w-full max-w-[1600px] bg-white sm:rounded-[36px] shadow-sm border border-gray-200/60 overflow-hidden flex flex-col lg:flex-row min-h-[92vh]">
-        
-        {/* 1. Left Sidebar Navigation */}
-        <Sidebar
-          currentTab={currentTab}
-          setCurrentTab={setCurrentTab}
-          urgentCount={urgentTopicsCount}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenHelp={() => setCurrentTab('notes')}
-          studentProfile={studentProfile}
-          onOpenProfile={() => setIsProfileOpen(true)}
-        />
+    <div className="h-screen w-screen overflow-hidden bg-[#F8F9FD] flex flex-row text-gray-900 font-sans">
+      {/* 1. Left Sidebar Navigation & Study To-Do List */}
+      <Sidebar
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        urgentCount={urgentTopicsCount}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenHelp={() => setCurrentTab('notes')}
+        studentProfile={studentProfile}
+        onOpenProfile={() => setIsProfileOpen(true)}
+      />
 
-        {/* 2. Center Main View Area */}
-        <div className="flex-1 flex flex-col p-6 sm:p-8 lg:p-10 overflow-y-auto bg-[#F8F9FD]">
-          {/* Top Header with Greeting, Search Bar, Profile Avatar */}
-          <TopHeader
+      {/* 2. Center Main View Area (Full Desktop Workspace) */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-[#F8F9FD] px-5 sm:px-7 py-5">
+        {/* Top Header with Greeting, Search Bar, Profile Avatar */}
+        <TopHeader
             studentName={studentProfile.name}
             studentProfile={studentProfile}
             subjects={subjects}
@@ -124,6 +129,9 @@ export default function App() {
                 selectedSubjectId={selectedSubjectId}
                 setSelectedSubjectId={setSelectedSubjectId}
                 subjects={subjects}
+                initialLoading={initialLoading}
+                initialError={initialError}
+                onRetryInitial={loadInitialData}
                 onNavigateTab={setCurrentTab}
                 onLaunchQuizForChapter={handleLaunchQuizForChapter}
                 onViewNotesForChapter={handleViewNotesForChapter}
@@ -195,7 +203,6 @@ export default function App() {
             onNavigateTab={setCurrentTab}
           />
         </div>
-      </div>
 
       {/* Settings Modal */}
       <SettingsModal

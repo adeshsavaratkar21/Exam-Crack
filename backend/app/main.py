@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.db.database import engine, Base, SessionLocal
-from app.routers import pyq, quiz, notes, analytics
+from app.routers import pyq, quiz, notes, analytics, books
 
 
 @asynccontextmanager
@@ -58,6 +58,7 @@ app.include_router(pyq.router, prefix=settings.API_V1_STR)
 app.include_router(quiz.router, prefix=settings.API_V1_STR)
 app.include_router(notes.router, prefix=settings.API_V1_STR)
 app.include_router(analytics.router, prefix=settings.API_V1_STR)
+app.include_router(books.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/api/health", tags=["Health"])

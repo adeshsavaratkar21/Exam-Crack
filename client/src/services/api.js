@@ -4,6 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
 
 const client = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,9 +40,14 @@ export const api = {
   submitQuiz: (data) => client.post('/quiz/submit', data),
   getQuizHistory: (chapterId) => client.get(`/quiz/history/${chapterId}`),
 
-  // Dual-AI Revision Notes
+  // Mastery & Revision Notes (unified single-AI)
   getChapterNotes: (chapterId) => client.get(`/notes/chapter/${chapterId}`),
-  generateDualNotes: (data) => client.post('/notes/generate', data),
+  generateMasteryNotes: (data) => client.post('/notes/generate', data, { timeout: 120000 }),
+  generateDualNotes: (data) => client.post('/notes/generate', data, { timeout: 120000 }), // backward-compat alias
+  markModuleComplete: (chapterId) => client.post(`/notes/chapter/${chapterId}/complete`),
+  getRevisionSheet: (chapterId) => client.get(`/notes/chapter/${chapterId}/sheet`),
+  generateRevisionSheet: (data) => client.post('/notes/sheet/generate', data, { timeout: 120000 }),
+  askTutorDoubt: (data) => client.post('/notes/chat', data, { timeout: 90000 }),
   getMarkdownExportUrl: (chapterId) => `${API_BASE_URL}/notes/export/markdown/${chapterId}`,
   getPdfExportUrl: (chapterId) => `${API_BASE_URL}/notes/export/pdf/${chapterId}`,
 
@@ -49,6 +55,15 @@ export const api = {
   getReadinessReport: (subjectId) => client.get(`/analytics/subject/${subjectId}`),
   updateWeightage: (data) => client.post('/analytics/weightage', data),
   toggleChapterComplete: (chapterId) => client.post(`/syllabus/chapter/${chapterId}/toggle-complete`),
+
+  // Reference Textbooks & College Prescribed Books
+  getSubjectBooks: (identifier) => client.get(`/books/subject/${identifier}`),
+  uploadBook: (formData) =>
+    client.post('/books/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  deleteBook: (subjectCode, filename) =>
+    client.delete('/books/delete', { params: { subject_code: subjectCode, filename } }),
 };
 
 export default api;

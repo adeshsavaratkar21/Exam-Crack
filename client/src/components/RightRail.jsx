@@ -1,30 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Edit3, 
   ChevronLeft, 
   ChevronRight, 
-  Clock, 
-  Mail, 
-  CheckCircle2, 
+  Flame, 
   Calendar, 
-  Sparkles, 
-  BookOpen,
-  CheckSquare,
-  Plus,
-  Trash2,
-  Check,
-  Flame,
-  ArrowRight,
-  Filter
+  Mail,
+  Sparkles,
+  Clock,
+  CalendarX2,
+  CalendarCheck2
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
-
-const DEFAULT_TASKS = [
-  { id: 1, text: "Revise DC Unit 2 Message Passing & Socket IPC", subject: "DC", completed: true },
-  { id: 2, text: "Practice 10-Question Daily Chapter Quiz for AISC", subject: "AISC", completed: true },
-  { id: 3, text: "Solve 2023 Endsem Lamport Clock numerical", subject: "DC", completed: false },
-  { id: 4, text: "Practice DFA State Minimization proofs", subject: "TOC", completed: false }
-];
+import EditExamsModal, { DEFAULT_EXAMS, formatDisplayDate } from './EditExamsModal';
 
 export default function RightRail({ 
   currentSubject, 
@@ -38,20 +25,28 @@ export default function RightRail({
   onNavigateTab
 }) {
   const [selectedDay, setSelectedDay] = useState(19);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Daily Tasks state persisted in localStorage
-  const [tasks, setTasks] = useState(() => {
+  // Persisted Upcoming Exams
+  const [exams, setExams] = useState(() => {
     try {
-      const saved = localStorage.getItem('examprep_daily_tasks');
+      const saved = localStorage.getItem('examprep_upcoming_exams');
       if (saved) return JSON.parse(saved);
     } catch (e) {
-      console.error('Failed to load daily tasks:', e);
+      console.error('Failed to load upcoming exams:', e);
     }
-    return DEFAULT_TASKS;
+    return DEFAULT_EXAMS;
   });
 
-  const [newTaskText, setNewTaskText] = useState('');
-  const [newTaskSubject, setNewTaskSubject] = useState('DC');
+  const handleSaveExams = (updatedExams) => {
+    setExams(updatedExams);
+    localStorage.setItem('examprep_upcoming_exams', JSON.stringify(updatedExams));
+  };
+
+  const handleResetDefaults = () => {
+    setExams(DEFAULT_EXAMS);
+    localStorage.removeItem('examprep_upcoming_exams');
+  };
 
   const daysOfWeek = [
     { day: 'SU', date: 18 },
@@ -63,174 +58,88 @@ export default function RightRail({
     { day: 'SA', date: 24 },
   ];
 
-  // Exam schedule definitions with fixed reference date (October 19, 2026)
-  const exams = [
-    {
-      id: 'dc-endsem',
-      subjectCode: 'DC',
-      name: 'Distributed Computing',
-      examTitle: 'University Endsem (100 Marks)',
-      time: '10:00',
-      dateStr: '2026-10-25',
-      displayDate: '25 October',
-      dayNum: 25,
-      borderColor: 'border-amber-400',
-      bgCard: 'bg-[#FEF9E7]',
-      accentColor: 'text-amber-900 bg-amber-100/90',
-      barColor: 'bg-amber-400',
-      type: 'Endsem (ESE)',
-      totalUnits: 6,
-      completedUnits: 2,
-    },
-    {
-      id: 'toc-midsem',
-      subjectCode: 'TOC',
-      name: 'Theory of Computation',
-      examTitle: 'Automata & Grammars Midsem',
-      time: '14:30',
-      dateStr: '2026-10-28',
-      displayDate: '28 October',
-      dayNum: 28,
-      borderColor: 'border-emerald-400',
-      bgCard: 'bg-[#E8F8EE]',
-      accentColor: 'text-emerald-900 bg-emerald-100/90',
-      barColor: 'bg-emerald-500',
-      type: 'Midsem (MSE)',
-      totalUnits: 9,
-      completedUnits: 2,
-    },
-    {
-      id: 'cns-assessment',
-      subjectCode: 'CNS',
-      name: 'Cryptography & Security',
-      examTitle: 'RSA & Ciphers Assessment',
-      time: '11:00',
-      dateStr: '2026-10-31',
-      displayDate: '31 October',
-      dayNum: 31,
-      borderColor: 'border-sky-400',
-      bgCard: 'bg-[#EBF5FF]',
-      accentColor: 'text-sky-900 bg-sky-100/90',
-      barColor: 'bg-sky-500',
-      type: 'Theory (ISE)',
-      totalUnits: 6,
-      completedUnits: 2,
-    },
-    {
-      id: 'se-endsem',
-      subjectCode: 'SE',
-      name: 'Software Engineering',
-      examTitle: 'Software Testing & Agile ESE',
-      time: '10:00',
-      dateStr: '2026-11-04',
-      displayDate: '04 November',
-      dayNum: 4,
-      borderColor: 'border-purple-400',
-      bgCard: 'bg-[#FAF5FF]',
-      accentColor: 'text-purple-900 bg-purple-100/90',
-      barColor: 'bg-purple-500',
-      type: 'Endsem (ESE)',
-      totalUnits: 6,
-      completedUnits: 2,
-    },
-    {
-      id: 'aisc-endsem',
-      subjectCode: 'AISC',
-      name: 'AI & Soft Computing',
-      examTitle: 'Neural Networks & Fuzzy Systems',
-      time: '14:00',
-      dateStr: '2026-11-08',
-      displayDate: '08 November',
-      dayNum: 8,
-      borderColor: 'border-rose-400',
-      bgCard: 'bg-[#FFF1F2]',
-      accentColor: 'text-rose-900 bg-rose-100/90',
-      barColor: 'bg-rose-500',
-      type: 'Endsem (ESE)',
-      totalUnits: 6,
-      completedUnits: 2,
-    }
-  ];
-
-  // Helper: calculate days left from October 19, 2026
+  // Helper: calculate days left from October 19, 2026 (or today's actual date)
   const getDaysLeft = (dateStr) => {
-    const today = new Date('2026-10-19T00:00:00');
-    const target = new Date(`${dateStr}T00:00:00`);
-    const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-    return diff;
+    if (!dateStr || !dateStr.trim()) return null;
+    try {
+      const referenceToday = new Date('2026-10-19T00:00:00');
+      const target = new Date(`${dateStr}T00:00:00`);
+      const diff = Math.ceil((target - referenceToday) / (1000 * 60 * 60 * 24));
+      return diff;
+    } catch {
+      return null;
+    }
   };
 
-  // Handle To-Do list operations
-  const handleToggleTask = (taskId) => {
-    setTasks(prev => {
-      const next = prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t);
-      const willBeAllDone = next.length > 0 && next.every(t => t.completed);
-      if (willBeAllDone) {
-        confetti({
-          particleCount: 60,
-          spread: 70,
-          origin: { y: 0.7 }
-        });
-      }
-      localStorage.setItem('examprep_daily_tasks', JSON.stringify(next));
-      return next;
+  // 1. UPCOMING EXAMS (SORTED BY NEAREST DATE FIRST ON TOP)
+  const upcomingExams = exams
+    .filter((e) => e.dateStr && e.dateStr.trim() !== '')
+    .map((e) => ({
+      ...e,
+      daysLeft: getDaysLeft(e.dateStr)
+    }))
+    .sort((a, b) => {
+      const timeA = a.time || '00:00';
+      const timeB = b.time || '00:00';
+      const dtA = new Date(`${a.dateStr}T${timeA}:00`).getTime() || 0;
+      const dtB = new Date(`${b.dateStr}T${timeB}:00`).getTime() || 0;
+      return dtA - dtB;
     });
-  };
 
-  const handleAddTask = (e) => {
-    e.preventDefault();
-    if (!newTaskText.trim()) return;
+  // 2. SUBJECTS WITH NO EXAM SCHEDULED (PLACED BELOW, WITH NO DEADLINE / DAYS LEFT)
+  const unscheduledFromExams = exams.filter((e) => !e.dateStr || !e.dateStr.trim());
+  const existingCodes = new Set(exams.map((e) => e.subjectCode));
+  const additionalCurriculumSubjects = subjects
+    .filter((s) => !existingCodes.has(s.code))
+    .map((s) => ({
+      id: `curriculum-${s.id}`,
+      subjectCode: s.code,
+      name: s.name,
+      examTitle: s.target_exam || 'Semester Examination',
+      time: '',
+      dateStr: '',
+      displayDate: '',
+      borderColor: 'border-gray-300',
+      bgCard: 'bg-[#F9FAFB]',
+      accentColor: 'text-gray-600 bg-gray-100',
+      barColor: 'bg-gray-400',
+      type: 'Exam',
+      totalUnits: s.chapter_count || 6,
+      completedUnits: 0,
+    }));
 
-    const newTask = {
-      id: Date.now(),
-      text: newTaskText.trim(),
-      subject: newTaskSubject,
-      completed: false
-    };
-
-    const next = [newTask, ...tasks];
-    setTasks(next);
-    localStorage.setItem('examprep_daily_tasks', JSON.stringify(next));
-    setNewTaskText('');
-  };
-
-  const handleDeleteTask = (taskId) => {
-    const next = tasks.filter(t => t.id !== taskId);
-    setTasks(next);
-    localStorage.setItem('examprep_daily_tasks', JSON.stringify(next));
-  };
-
-  const completedCount = tasks.filter(t => t.completed).length;
+  const noExamSubjects = [...unscheduledFromExams, ...additionalCurriculumSubjects];
 
   return (
-    <aside className="w-80 bg-white border-l border-softBorder/80 p-5 flex flex-col gap-5 shrink-0 h-screen sticky top-0 overflow-y-auto scrollbar-thin">
-      {/* Header: Academic Schedule */}
-      <div className="flex items-center justify-between pb-3 border-b border-gray-100 shrink-0">
+    <aside className="w-80 bg-white border-l border-softBorder/80 p-4 flex flex-col gap-4 shrink-0 h-screen sticky top-0 overflow-y-auto scrollbar-thin">
+      {/* Header: Academic Schedule & Edit Dates Button */}
+      <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 shrink-0">
         <div>
-          <h3 className="font-extrabold text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
+          <h3 className="font-extrabold text-gray-900 text-xs tracking-tight flex items-center gap-1.5">
             <span>📅</span>
             Academic Schedule
           </h3>
-          <p className="text-[11px] text-gray-400 font-medium">Semester 5 • Exam Countdown</p>
+          <p className="text-[10px] text-gray-400 font-medium">Semester 5 • Exam Countdown</p>
         </div>
         <button 
-          onClick={onOpenEditProfile}
-          title="Edit Student Profile Settings"
-          className="w-8 h-8 rounded-xl bg-gray-50 hover:bg-accentYellow flex items-center justify-center text-gray-500 hover:text-gray-950 transition-colors"
+          onClick={() => setIsEditModalOpen(true)}
+          title="Edit Upcoming Exam Dates & Times"
+          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 hover:bg-accentYellow text-gray-600 hover:text-gray-950 font-bold text-[10px] transition-colors border border-gray-200/80 cursor-pointer"
         >
-          <Edit3 className="w-3.5 h-3.5" />
+          <Edit3 className="w-3 h-3" />
+          <span>Edit Dates</span>
         </button>
       </div>
 
       {/* Mini Calendar Widget */}
-      <div className="bg-[#F8F9FC] rounded-2xl p-3.5 border border-gray-100 shrink-0">
-        <div className="flex items-center justify-between mb-2.5 px-1">
+      <div className="bg-[#F8F9FC] rounded-2xl p-2.5 border border-gray-100 shrink-0">
+        <div className="flex items-center justify-between mb-2 px-1">
           <button className="text-gray-400 hover:text-gray-700">
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5" />
           </button>
-          <span className="font-bold text-xs text-gray-800">October 2026</span>
+          <span className="font-bold text-[11px] text-gray-800">October 2026</span>
           <button className="text-gray-400 hover:text-gray-700">
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -241,12 +150,12 @@ export default function RightRail({
               <div 
                 key={item.date}
                 onClick={() => setSelectedDay(item.date)}
-                className="flex flex-col items-center gap-1 cursor-pointer py-0.5"
+                className="flex flex-col items-center gap-0.5 cursor-pointer py-0.5"
               >
-                <span className="text-[10px] font-semibold text-gray-400">{item.day}</span>
-                <div className={`w-7 h-7 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all ${
+                <span className="text-[9px] font-semibold text-gray-400">{item.day}</span>
+                <div className={`w-6 h-6 rounded-lg flex flex-col items-center justify-center text-[11px] font-extrabold transition-all ${
                   isSelected 
-                    ? 'bg-gray-950 text-white shadow-sm' 
+                    ? 'bg-gray-950 text-white shadow-xs' 
                     : 'text-gray-700 hover:bg-gray-200/60'
                 }`}>
                   <span>{item.date}</span>
@@ -258,220 +167,232 @@ export default function RightRail({
       </div>
 
       {/* ======================================================== */}
-      {/* EXAM COUNTDOWN CARDS WITH REVISION HEALTH BAR            */}
+      {/* 1. UPCOMING EXAMS (COMING SOON AT THE TOP)               */}
       {/* ======================================================== */}
-      <div className="space-y-3 shrink-0">
+      <div className="space-y-2 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Flame className="w-4 h-4 text-amber-500" />
-            <h3 className="font-black text-gray-900 text-xs tracking-tight uppercase">
-              Upcoming Exams
+            <Flame className="w-3.5 h-3.5 text-amber-500" />
+            <h3 className="font-black text-gray-900 text-[11px] tracking-tight uppercase">
+              Upcoming Exams ({upcomingExams.length})
             </h3>
           </div>
-          <span className="text-[10px] font-bold text-gray-400">Click to switch subject</span>
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="text-[10px] font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer"
+          >
+            Edit Schedule
+          </button>
         </div>
 
-        <div className="space-y-2.5">
-          {exams.map((exam) => {
-            const matchedSub = subjects.find(s => s.code === exam.subjectCode);
-            const subId = matchedSub?.id;
-            const isSelected = selectedSubjectId && subId === Number(selectedSubjectId);
-            const daysLeft = getDaysLeft(exam.dateStr);
+        {upcomingExams.length === 0 ? (
+          <div className="p-3 rounded-xl bg-gray-50 border border-dashed border-gray-200 text-center">
+            <p className="text-xs font-semibold text-gray-600">No exams currently scheduled</p>
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="mt-1 text-[11px] font-bold text-amber-600 hover:underline"
+            >
+              + Schedule Exam Dates
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {upcomingExams.map((exam) => {
+              const matchedSub = subjects.find((s) => s.code === exam.subjectCode);
+              const subId = matchedSub?.id;
+              const isSelected = selectedSubjectId && subId === Number(selectedSubjectId);
+              const daysLeft = exam.daysLeft;
 
-            // Real syllabus coverage calculation
-            const readinessPct = Math.round(matchedSub?.overall_readiness || (exam.completedUnits / exam.totalUnits * 100));
-            const totalUnits = matchedSub?.chapter_count || exam.totalUnits;
-            const completedUnits = exam.completedUnits;
+              // Real syllabus coverage calculation
+              const readinessPct = Math.round(
+                matchedSub?.overall_readiness || ((exam.completedUnits || 2) / (exam.totalUnits || 6)) * 100
+              );
+              const totalUnits = matchedSub?.chapter_count || exam.totalUnits || 6;
+              const completedUnits = exam.completedUnits || 2;
 
-            return (
-              <div
-                key={exam.id}
-                onClick={() => {
-                  if (subId && onSelectSubject) {
-                    onSelectSubject(subId);
-                  }
-                }}
-                className={`p-3 rounded-2xl ${exam.bgCard} border-l-4 ${exam.borderColor} cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group relative ${
-                  isSelected ? 'ring-2 ring-gray-950 shadow-xs' : 'hover:shadow-2xs'
-                }`}
-                title={`Click to focus Dashboard & Quizzes on ${exam.name}`}
-              >
-                {/* Header row: Display Date & Dynamic Countdown Badge */}
-                <div className="flex items-center justify-between gap-1 mb-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">
-                    {exam.displayDate} • {exam.time}
-                  </span>
+              // Color highlight logic
+              const isUrgent = daysLeft !== null && daysLeft <= 7;
+              const isMedium = daysLeft !== null && daysLeft > 7 && daysLeft <= 14;
 
-                  {/* DYNAMIC COUNTDOWN PILL */}
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${exam.accentColor} flex items-center gap-1 shadow-3xs`}>
-                    ⏳ {daysLeft} Days to {exam.subjectCode} {exam.type.split(' ')[0]}
-                  </span>
-                </div>
+              return (
+                <div
+                  key={exam.id}
+                  onClick={() => {
+                    if (subId && onSelectSubject) {
+                      onSelectSubject(subId);
+                    }
+                  }}
+                  className={`p-2.5 rounded-xl ${exam.bgCard || 'bg-gray-50'} border-l-4 ${exam.borderColor || 'border-amber-400'} cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group relative ${
+                    isSelected ? 'ring-2 ring-gray-950 shadow-xs' : 'hover:shadow-3xs'
+                  }`}
+                  title={`Click to focus Dashboard on ${exam.name}`}
+                >
+                  {/* Header row: Display Date & PROMINENTLY HIGHLIGHTED DAYS LEFT BADGE */}
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-gray-500">
+                      {exam.displayDate || exam.dateStr} {exam.time ? `• ${exam.time}` : ''}
+                    </span>
 
-                {/* Subject Name & Paper Title */}
-                <div>
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs font-black text-gray-900 group-hover:text-gray-950 flex items-center gap-1">
-                      <span>{exam.name}</span>
-                      {isSelected && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                      )}
-                    </p>
-                    <span className="text-[10px] font-bold text-gray-500">
-                      {isSelected ? 'Active' : 'Switch →'}
+                    {/* PROMINENT DAYS LEFT BADGE */}
+                    <span
+                      className={`text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs tracking-tight ${
+                        daysLeft === 0
+                          ? 'bg-rose-600 text-white animate-pulse'
+                          : isUrgent
+                          ? 'bg-rose-500 text-white animate-pulse'
+                          : isMedium
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-emerald-600 text-white'
+                      }`}
+                    >
+                      <span>⚡</span>
+                      <span>
+                        {daysLeft === 0
+                          ? 'EXAM TODAY'
+                          : daysLeft === 1
+                          ? '1 DAY LEFT'
+                          : `${daysLeft} DAYS LEFT`}
+                      </span>
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-600 font-medium mt-0.5">
-                    {exam.examTitle}
-                  </p>
-                </div>
 
-                {/* REVISION HEALTH BAR & SYLLABUS COVERAGE */}
-                <div className="mt-2.5 pt-2 border-t border-black/5">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-gray-600 mb-1">
+                  {/* Subject Name & Paper Title (Compact) */}
+                  <div>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[11px] font-black text-gray-900 group-hover:text-gray-950 flex items-center gap-1 leading-snug">
+                        <span>{exam.name}</span>
+                        {isSelected && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        )}
+                      </p>
+                      <span className="text-[9px] font-bold text-gray-400 shrink-0">
+                        {isSelected ? 'Active' : 'Switch →'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 font-medium truncate mt-0.5">
+                      {exam.examTitle || 'Semester Examination'}
+                    </p>
+                  </div>
+
+                  {/* Sleek Revision Coverage Bar (Compact height) */}
+                  <div className="mt-1.5 pt-1.5 border-t border-black/5 flex items-center justify-between text-[9px] font-bold text-gray-500">
                     <span>{exam.subjectCode}: {completedUnits}/{totalUnits} Units</span>
                     <span className="font-extrabold text-gray-900">{readinessPct}% Revised</span>
                   </div>
-                  <div className="w-full bg-black/10 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-black/10 h-1 rounded-full overflow-hidden mt-0.5">
                     <div 
-                      className={`h-full rounded-full transition-all duration-500 ${exam.barColor}`}
+                      className={`h-full rounded-full transition-all duration-500 ${exam.barColor || 'bg-amber-400'}`}
                       style={{ width: `${Math.max(10, readinessPct)}%` }}
                     />
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ======================================================== */}
-      {/* SECTION 2: DAILY STUDY TO-DO LIST & TASK TRACKER         */}
+      {/* 2. SUBJECTS WITH NO EXAM SCHEDULED (BELOW WITH NO DAYS)  */}
       {/* ======================================================== */}
-      <div className="pt-2 border-t border-gray-100 shrink-0">
-        <div className="flex items-center justify-between mb-2.5">
-          <div className="flex items-center gap-1.5">
-            <CheckSquare className="w-4 h-4 text-gray-900" />
-            <h3 className="font-black text-gray-900 text-xs tracking-tight uppercase">
-              Today's Study To-Do
-            </h3>
-          </div>
-          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-            {completedCount}/{tasks.length} Done
-          </span>
-        </div>
-
-        {/* Progress Bar of Daily Tasks */}
-        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-3">
-          <div 
-            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
-            style={{ width: `${tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0}%` }}
-          />
-        </div>
-
-        {/* Quick Add Task Input */}
-        <form onSubmit={handleAddTask} className="mb-3 space-y-2">
-          <div className="flex items-center gap-1.5">
-            <input
-              type="text"
-              placeholder="Add study task..."
-              value={newTaskText}
-              onChange={(e) => setNewTaskText(e.target.value)}
-              className="flex-1 bg-[#F8F9FC] border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-gray-400 font-medium"
-            />
-            <select
-              value={newTaskSubject}
-              onChange={(e) => setNewTaskSubject(e.target.value)}
-              className="bg-[#F8F9FC] border border-gray-200 rounded-xl px-2 py-1.5 text-[10px] font-black text-gray-700 focus:outline-none"
-            >
-              <option value="DC">DC</option>
-              <option value="TOC">TOC</option>
-              <option value="CNS">CNS</option>
-              <option value="SE">SE</option>
-              <option value="AISC">AISC</option>
-              <option value="MDM">MDM</option>
-            </select>
+      {noExamSubjects.length > 0 && (
+        <div className="pt-2.5 border-t border-gray-100 space-y-2 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <CalendarX2 className="w-3.5 h-3.5 text-gray-400" />
+              <h3 className="font-black text-gray-500 text-[10px] tracking-tight uppercase">
+                No Exam Scheduled ({noExamSubjects.length})
+              </h3>
+            </div>
             <button
-              type="submit"
-              disabled={!newTaskText.trim()}
-              className="w-7 h-7 rounded-xl bg-accentYellow hover:bg-accentYellowHover text-gray-950 font-black text-xs flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs shrink-0 cursor-pointer"
-              title="Add Task"
+              onClick={() => setIsEditModalOpen(true)}
+              className="text-[10px] font-bold text-gray-500 hover:text-gray-900 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
+              + Schedule
             </button>
           </div>
-        </form>
 
-        {/* Task List */}
-        <div className="space-y-2 max-h-52 overflow-y-auto pr-0.5 scrollbar-thin">
-          {tasks.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-4 font-medium">
-              No tasks added yet. Add your study goals above!
-            </p>
-          ) : (
-            tasks.map((task) => (
-              <div
-                key={task.id}
-                className={`p-2.5 rounded-xl border transition-all flex items-start justify-between gap-2 group ${
-                  task.completed 
-                    ? 'bg-gray-50/70 border-gray-200/60 opacity-80' 
-                    : 'bg-white border-gray-200 hover:border-gray-300 shadow-2xs'
-                }`}
-              >
-                <div 
-                  onClick={() => handleToggleTask(task.id)}
-                  className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer"
+          <div className="space-y-1.5">
+            {noExamSubjects.map((sub) => {
+              const matchedSub = subjects.find((s) => s.code === sub.subjectCode);
+              const subId = matchedSub?.id;
+              const isSelected = selectedSubjectId && subId === Number(selectedSubjectId);
+
+              const readinessPct = Math.round(
+                matchedSub?.overall_readiness || ((sub.completedUnits || 0) / (sub.totalUnits || 6)) * 100
+              );
+              const totalUnits = matchedSub?.chapter_count || sub.totalUnits || 6;
+              const completedUnits = sub.completedUnits || 0;
+
+              return (
+                <div
+                  key={sub.id}
+                  onClick={() => {
+                    if (subId && onSelectSubject) {
+                      onSelectSubject(subId);
+                    }
+                  }}
+                  className={`p-2 rounded-xl bg-gray-50/70 border-l-4 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer group ${
+                    isSelected ? 'ring-2 ring-gray-900 bg-white' : ''
+                  }`}
+                  title={`Click to view ${sub.name}. No exam scheduled.`}
                 >
-                  <button
-                    type="button"
-                    className={`w-4 h-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                      task.completed 
-                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-2xs' 
-                        : 'border-gray-300 hover:border-emerald-500 bg-white'
-                    }`}
-                  >
-                    {task.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-xs leading-snug break-words ${
-                      task.completed ? 'line-through text-gray-400 font-medium' : 'text-gray-800 font-semibold'
-                    }`}>
-                      {task.text}
-                    </p>
-                    <span className="inline-block mt-0.5 text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-gray-100 text-gray-600">
-                      {task.subject}
+                  {/* Top line: No Deadline & No Exam Scheduled badge (NO days left or countdown) */}
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                      No Deadline
+                    </span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-gray-200/60 text-gray-500">
+                      Not Scheduled
                     </span>
                   </div>
+
+                  {/* Subject Name */}
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[11px] font-bold text-gray-800 group-hover:text-gray-950 truncate">
+                      {sub.name}
+                    </p>
+                    <span className="text-[8px] font-black uppercase px-1.5 py-0.2 rounded bg-gray-200 text-gray-600 shrink-0">
+                      {sub.subjectCode}
+                    </span>
+                  </div>
+
+                  {/* Units & Revision % */}
+                  <div className="mt-1 pt-1 border-t border-gray-200/60 flex items-center justify-between text-[9px] font-medium text-gray-500">
+                    <span>{completedUnits}/{totalUnits} Units</span>
+                    <span className="font-bold text-gray-700">{readinessPct}% Revised</span>
+                  </div>
                 </div>
-
-                <button
-                  onClick={() => handleDeleteTask(task.id)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-rose-500 p-0.5 transition-opacity"
-                  title="Delete task"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))
-          )}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Reminders / Practice Tips */}
+      {/* Daily Reminder / Practice Tips */}
       <div className="pt-2 border-t border-gray-100 shrink-0">
-        <h3 className="font-black text-gray-900 text-xs uppercase tracking-wider mb-2.5">
+        <h3 className="font-black text-gray-900 text-[10px] uppercase tracking-wider mb-2">
           Daily Reminder
         </h3>
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#F8F9FC] border border-gray-100">
-          <div className="w-8 h-8 rounded-xl bg-[#EBF5FF] text-sky-600 flex items-center justify-center shrink-0 font-bold">
-            <Mail className="w-4 h-4" />
+        <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#F8F9FC] border border-gray-100">
+          <div className="w-7 h-7 rounded-lg bg-[#EBF5FF] text-sky-600 flex items-center justify-center shrink-0 font-bold">
+            <Mail className="w-3.5 h-3.5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-gray-900 truncate">Daily Chapter Quiz</p>
-            <p className="text-[11px] text-gray-400 font-medium">Calibrate Readiness Today, 6:00 PM</p>
+            <p className="text-[11px] font-bold text-gray-900 truncate">Daily Chapter Quiz</p>
+            <p className="text-[9px] text-gray-400 font-medium">Calibrate Readiness Today, 6:00 PM</p>
           </div>
         </div>
       </div>
+
+      {/* Edit Exams Modal */}
+      <EditExamsModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        exams={exams}
+        onSaveExams={handleSaveExams}
+        onResetDefaults={handleResetDefaults}
+      />
     </aside>
   );
 }

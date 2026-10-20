@@ -163,24 +163,54 @@ class QuizResultResponse(BaseModel):
     questions: List[QuizQuestionItem]
 
 
-# ---------------- DUAL-AI NOTES SCHEMAS ---------------- #
+# ---------------- MASTERY & REVISION NOTES SCHEMAS ---------------- #
 class NotesGenerateRequest(BaseModel):
     subject_id: int
     chapter_id: int
     force_regenerate: Optional[bool] = False
 
 
-class DualNotesResponse(BaseModel):
+class RevisionSheetGenerateRequest(BaseModel):
+    subject_id: int
+    chapter_id: int
+    force_regenerate: Optional[bool] = False
+
+
+class TutorStep(BaseModel):
+    title: str
+    body: str
+
+
+class MasteryNotesResponse(BaseModel):
     chapter_id: int
     chapter_name: str
     subject_name: str
-    gemini_summary_md: str
-    openai_summary_md: str
+    unified_md: str
+    steps: Optional[List[TutorStep]] = None
     key_formulas: List[str] = []
     pitfalls: List[str] = []
     mnemonics: List[str] = []
     generated_at: datetime
+    module_completed: bool = False
     sources_used: Optional[str] = "PYQ Papers & University Syllabus"
+
+
+# Backward-compat alias so old code referencing DualNotesResponse still works
+class DualNotesResponse(MasteryNotesResponse):
+    gemini_summary_md: Optional[str] = ""
+    openai_summary_md: Optional[str] = ""
+
+
+class RevisionSheetResponse(BaseModel):
+    chapter_id: int
+    chapter_name: str
+    subject_name: str
+    summary_md: str
+    formulas: List[str] = []
+    pitfalls: List[str] = []
+    mnemonics: List[str] = []
+    exam_questions: List[str] = []
+    generated_at: datetime
 
 
 # ---------------- STRATEGIC READINESS TRACKER SCHEMAS ---------------- #
@@ -231,3 +261,22 @@ class ApiKeyStatusResponse(BaseModel):
 class UpdateApiKeysRequest(BaseModel):
     gemini_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
+
+
+# ---------------- TUTOR CHAT SCHEMAS ---------------- #
+class TutorChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+
+class TutorChatRequest(BaseModel):
+    subject_id: int
+    chapter_id: int
+    message: str
+    history: Optional[List[TutorChatMessage]] = []
+    current_topic: Optional[str] = None
+
+
+class TutorChatResponse(BaseModel):
+    reply: str
+    suggested_questions: Optional[List[str]] = []

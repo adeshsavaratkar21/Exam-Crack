@@ -30,7 +30,7 @@ export default function Navbar({
     { id: 'dashboard', label: 'Dashboard', icon: Layers },
     { id: 'pyq', label: 'PYQ Hub', icon: BookOpen },
     { id: 'quiz', label: 'Daily Quiz', icon: HelpCircle },
-    { id: 'notes', label: 'Dual-AI Notes', icon: FileText },
+    { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'readiness', label: 'Readiness Tracker', icon: Target },
   ];
 
