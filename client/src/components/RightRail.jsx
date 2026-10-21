@@ -24,8 +24,34 @@ export default function RightRail({
   onNavigateToNotes,
   onNavigateTab
 }) {
-  const [selectedDay, setSelectedDay] = useState(19);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Dynamic Current Date Anchor (Fixed to real current date)
+  const today = new Date();
+  const currentDayNum = today.getDate();
+  const currentMonthYear = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const todayFormatted = today.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+
+  // Compute 7-day current week based on today's real date
+  const currentDayOfWeek = today.getDay(); // 0 is Sunday
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - currentDayOfWeek);
+
+  const dayNames = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    const isToday = (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
+    return {
+      day: dayNames[d.getDay()],
+      date: d.getDate(),
+      isToday
+    };
+  });
 
   // Persisted Upcoming Exams
   const [exams, setExams] = useState(() => {
@@ -48,23 +74,16 @@ export default function RightRail({
     localStorage.removeItem('examprep_upcoming_exams');
   };
 
-  const daysOfWeek = [
-    { day: 'SU', date: 18 },
-    { day: 'MO', date: 19 },
-    { day: 'TU', date: 20 },
-    { day: 'WE', date: 21 },
-    { day: 'TH', date: 22 },
-    { day: 'FR', date: 23 },
-    { day: 'SA', date: 24 },
-  ];
-
-  // Helper: calculate days left from October 19, 2026 (or today's actual date)
+  // Helper: calculate days left dynamically relative to today's midnight
   const getDaysLeft = (dateStr) => {
     if (!dateStr || !dateStr.trim()) return null;
     try {
-      const referenceToday = new Date('2026-10-19T00:00:00');
-      const target = new Date(`${dateStr}T00:00:00`);
-      const diff = Math.ceil((target - referenceToday) / (1000 * 60 * 60 * 24));
+      const now = new Date();
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const parts = dateStr.split('-').map(Number);
+      if (parts.length < 3) return null;
+      const targetMidnight = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+      const diff = Math.round((targetMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
       return diff;
     } catch {
       return null;
@@ -131,35 +150,36 @@ export default function RightRail({
         </button>
       </div>
 
-      {/* Mini Calendar Widget */}
-      <div className="bg-[#F8F9FC] rounded-2xl p-2.5 border border-gray-100 shrink-0">
+      {/* Mini Calendar Widget (Fixed to Current Date) */}
+      <div className="bg-[#F8F9FC] rounded-2xl p-2.5 border border-gray-100 shrink-0 select-none">
         <div className="flex items-center justify-between mb-2 px-1">
-          <button className="text-gray-400 hover:text-gray-700">
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          <span className="font-bold text-[11px] text-gray-800">October 2026</span>
-          <button className="text-gray-400 hover:text-gray-700">
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          <span className="font-extrabold text-[11px] text-gray-800">{currentMonthYear}</span>
+          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/80">
+            Today: {todayFormatted}
+          </span>
         </div>
 
         <div className="grid grid-cols-7 gap-1 text-center">
-          {daysOfWeek.map((item) => {
-            const isSelected = item.date === selectedDay;
+          {daysOfWeek.map((item, idx) => {
             return (
               <div 
-                key={item.date}
-                onClick={() => setSelectedDay(item.date)}
-                className="flex flex-col items-center gap-0.5 cursor-pointer py-0.5"
+                key={idx}
+                className="flex flex-col items-center gap-0.5 py-0.5"
+                title={item.isToday ? 'Today (Fixed)' : undefined}
               >
-                <span className="text-[9px] font-semibold text-gray-400">{item.day}</span>
+                <span className={`text-[9px] font-semibold ${item.isToday ? 'text-gray-900 font-black' : 'text-gray-400'}`}>
+                  {item.day}
+                </span>
                 <div className={`w-6 h-6 rounded-lg flex flex-col items-center justify-center text-[11px] font-extrabold transition-all ${
-                  isSelected 
-                    ? 'bg-gray-950 text-white shadow-xs' 
-                    : 'text-gray-700 hover:bg-gray-200/60'
+                  item.isToday 
+                    ? 'bg-gray-950 text-white shadow-xs ring-2 ring-amber-400' 
+                    : 'text-gray-700'
                 }`}>
                   <span>{item.date}</span>
                 </div>
+                {item.isToday && (
+                  <span className="w-1 h-1 rounded-full bg-amber-500 mt-0.5" />
+                )}
               </div>
             );
           })}

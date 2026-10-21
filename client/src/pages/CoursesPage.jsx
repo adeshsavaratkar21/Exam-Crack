@@ -339,7 +339,16 @@ export default function CoursesPage({
               return (
                 <div 
                   key={ch.id}
-                  className="student-card p-5 sm:p-6 bg-white hover:border-gray-300 transition-all"
+                  onClick={() => {
+                    if (setSelectedSubjectId && activeFolderId) {
+                      setSelectedSubjectId(activeFolderId);
+                    }
+                    if (onViewNotesForChapter) {
+                      onViewNotesForChapter(ch.id);
+                    }
+                  }}
+                  className="student-card p-5 sm:p-6 bg-white border border-gray-100 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group rounded-2xl relative"
+                  title={`Click to open revision notes for ${ch.name}`}
                 >
                   {/* Unit Top Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-gray-100">
@@ -360,7 +369,7 @@ export default function CoursesPage({
                         </span>
                       </div>
 
-                      <h3 className="font-black text-base sm:text-lg text-gray-900 tracking-tight pt-1">
+                      <h3 className="font-black text-base sm:text-lg text-gray-900 tracking-tight pt-1 group-hover:text-amber-800 transition-colors">
                         {ch.name.replace(/^Unit \d+:\s*/, '')}
                       </h3>
                     </div>
@@ -379,16 +388,32 @@ export default function CoursesPage({
                       )}
 
                       <button
-                        onClick={() => onLaunchQuizForChapter && onLaunchQuizForChapter(ch.id)}
-                        className="px-3 py-1.5 rounded-xl bg-accentYellow text-gray-950 font-bold text-xs hover:bg-amber-300 shadow-2xs transition-colors flex items-center gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (setSelectedSubjectId && activeFolderId) {
+                            setSelectedSubjectId(activeFolderId);
+                          }
+                          if (onLaunchQuizForChapter) {
+                            onLaunchQuizForChapter(ch.id);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-accentYellow text-gray-950 font-bold text-xs hover:bg-amber-300 shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <HelpCircle className="w-3.5 h-3.5" />
                         Take Quiz
                       </button>
 
                       <button
-                        onClick={() => onViewNotesForChapter && onViewNotesForChapter(ch.id)}
-                        className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-800 font-bold text-xs hover:bg-gray-200 transition-colors flex items-center gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (setSelectedSubjectId && activeFolderId) {
+                            setSelectedSubjectId(activeFolderId);
+                          }
+                          if (onViewNotesForChapter) {
+                            onViewNotesForChapter(ch.id);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-800 font-bold text-xs hover:bg-gray-200 transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                         Notes

@@ -244,6 +244,223 @@ SE_RAW_MD = r"""# 📚 __CHAPTER_NAME__ — In-Depth Theoretical Mastery
   Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion.
 - ⚠️ **Exam Trap**: In Boundary Value Analysis, for interval $[a, b]$, test $a-1, a, a+1, b-1, b, b+1$!
 """
+CNS_UNIT2_RAW_MD = r"""# 📚 Unit 2: Symmetric and Asymmetric Ciphers — In-Depth Theoretical Mastery
+*Reference Syllabus: Cryptography & Network Security (CNS) | Official Prescribed Textbooks: William Stallings (Cryptography and Network Security: Principles and Practice, 7th/8th Ed.) • Behrouz A. Forouzan | Lecture PPT: Unit 2 Symmetric & Public-Key Cryptosystems*
+
+---
+
+### 1. 🎯 Comprehensive Concept Overview & Syllabus Subtopics
+
+#### 2.1 Classical Encryption & Cryptographic Principles
+- **The Foundation: Claude Shannon's Security Principles**:
+  - **Confusion**: Obscures the relationship between the plaintext, ciphertext, and secret key. Any statistical patterns in the plaintext are eliminated in the ciphertext. Implemented modernly using non-linear substitution boxes (**S-Boxes**).
+  - **Diffusion**: Spreads the statistical characteristics of individual plaintext digits over a large portion of the ciphertext. Changing a single plaintext bit should change approximately half the ciphertext bits (**Avalanche Effect**). Implemented via permutations, cyclic shifts (**ShiftRows**), and linear matrix mixing (**MixColumns**).
+- **Substitution Techniques**:
+  - **Caesar / Shift Cipher**: Monalphabetic cipher: $C = (P + k) \pmod{26}$. Easily broken via frequency analysis.
+  - **Playfair Cipher**: Encrypts digraphs using a $5 \times 5$ matrix filled with a keyword (combining I and J). Rules:
+    1. If letters fall in the same row: replace each with the letter to its immediate right (wrapping around).
+    2. If letters fall in the same column: replace each with the letter immediately below.
+    3. If letters form a rectangle: replace each with the letter in the same row but in the column of the other letter.
+    4. Repeating letters in a pair are separated with filler 'X'.
+  - **Polyalphabetic Vigenère Cipher**: Uses repeated keyword: $C_i = (P_i + K_{i \pmod m}) \pmod{26}$. Flattened letter frequencies; analyzed using Kasiski examination and Friedman test.
+  - **Hill Cipher**: Multi-letter cipher based on linear algebra: $\mathbf{C} = \mathbf{P} \cdot \mathbf{K} \pmod{26}$. Invertible decryption key exists if and only if $\gcd(\det(\mathbf{K}), 26) = 1$.
+- **Transposition Techniques**:
+  - **Rail Fence Cipher**: Plaintext written along diagonal rails and read off row by row.
+  - **Columnar Transposition**: Text written into rows of fixed length $m$ and read out column by column according to a permutation key.
+- **Rotor Machines & Steganography**:
+  - **Rotor Machines (e.g., Enigma)**: Cascaded rotating cylinders dynamically altering substitution permutations with every keystroke.
+  - **Steganography**: Hiding the very existence of a communication (e.g., Least Significant Bit - LSB insertion in 24-bit RGB pixel bitmaps).
+
+#### 2.2 Symmetric Block Ciphers: DES, 3DES, and AES
+- **Block Cipher vs. Stream Cipher**:
+  - **Block Cipher**: Encrypts fixed-size blocks (e.g., 64-bit or 128-bit) using an invariant round function. Examples: DES, AES, IDEA.
+  - **Stream Cipher**: Generates a continuous pseudorandom keystream $s_i$ and XORs bit-by-bit: $c_i = p_i \oplus s_i$. Example: RC4, ChaCha20.
+- **DES (Data Encryption Standard)**:
+  - **Parameters**: 64-bit input block, 64-bit key (56 effective bits + 8 parity bits), 16 identical Feistel rounds.
+  - **Feistel Network Architecture**:
+    $$L_i = R_{i-1}, \quad R_i = L_{i-1} \oplus F(R_{i-1}, K_i)$$
+    - Round Function $F$:
+      1. Expansion Permutation $E$: Expands 32-bit $R_{i-1}$ to 48 bits.
+      2. Key Mixing: Bitwise XOR with 48-bit round subkey $K_i$.
+      3. S-Box Substitution: 8 S-boxes ($S_1 \dots S_8$), each mapping 6 bits $\to$ 4 bits (Outer bits 1 & 6 determine row, inner bits 2–5 determine column). Provides non-linearity.
+      4. Permutation $P$: 32-bit straight permutation.
+  - **Key Schedule**: 56 bits selected via PC-1, split into two 28-bit halves, left-shifted cyclically by 1 or 2 bits per round, and compressed via PC-2 to generate 48-bit subkey $K_i$.
+  - **Weaknesses**: 56-bit key space ($2^{56} \approx 7.2 \times 10^{16}$) vulnerable to brute-force (EFF DES Cracker broke it in 56 hours).
+- **Triple DES (3DES)**:
+  - Overcomes DES key exhaustion using Encrypt-Decrypt-Encrypt (EDE) sequence:
+    $$C = E_{K_1}(D_{K_2}(E_{K_3}(P)))$$
+  - **Meet-in-the-Middle Attack on Double-DES (2DES)**:
+    Why 2DES fails: If $C = E_{K_2}(E_{K_1}(P))$, an attacker can compute $X = E_{K_1}(P)$ for all $2^{56}$ keys and store in a lookup table, then compute $D_{K_2}(C)$ for all $2^{56}$ keys looking for collisions. Space/Time complexity: $2 \times 2^{56} = 2^{57}$, offering NO extra security over single DES! Hence, 3DES with EDE is mandatory.
+- **AES (Advanced Encryption Standard - FIPS 197 / Rijndael)**:
+  - **Parameters**: 128-bit block size. Key sizes: 128-bit (10 rounds), 192-bit (12 rounds), 256-bit (14 rounds).
+  - Operates on a $4 \times 4$ column-major matrix of bytes called the **State Array**.
+  - **The 4 Round Transformations**:
+    1. **SubBytes**: Non-linear byte substitution using an invertible S-box constructed via multiplicative inverse in Galois Field $GF(2^8)$ modulo irreducible polynomial $m(x) = x^8 + x^4 + x^3 + x + 1$ (0x11B), followed by an affine transformation over $GF(2)$. Provides non-linear confusion.
+    2. **ShiftRows**: Cyclically shifts the bytes in each row of the State:
+       - Row 0: No shift
+       - Row 1: Shift left by 1 byte
+       - Row 2: Shift left by 2 bytes
+       - Row 3: Shift left by 3 bytes
+    3. **MixColumns**: Treats each column as a 4-term polynomial over $GF(2^8)$ and multiplies it modulo $x^4 + 1$ with the fixed circulant polynomial $c(x) = 03x^3 + 01x^2 + 01x + 02$:
+       $$\begin{bmatrix} s'_{0,c} \\ s'_{1,c} \\ s'_{2,c} \\ s'_{3,c} \end{bmatrix} = \begin{bmatrix} 02 & 03 & 01 & 01 \\ 01 & 02 & 03 & 01 \\ 01 & 01 & 02 & 03 \\ 03 & 01 & 01 & 02 \end{bmatrix} \begin{bmatrix} s_{0,c} \\ s_{1,c} \\ s_{2,c} \\ s_{3,c} \end{bmatrix}$$
+       *(Note: Omitted in the 10th/final round!)*
+    4. **AddRoundKey**: Bitwise XOR of the 128-bit State with the 128-bit round key.
+  - **Key Expansion**: Generates $(N_r + 1)$ 128-bit round keys from the master key using `RotWord`, `SubWord`, and `Rcon` (Round Constant array).
+
+#### 2.3 Block Cipher Modes of Operation (NIST SP 800-38A)
+| Mode | Encryption Formula | Decryption Formula | Key Strengths & Vulnerabilities |
+| :--- | :--- | :--- | :--- |
+| **ECB (Electronic Codebook)** | $C_i = E_K(P_i)$ | $P_i = D_K(C_i)$ | **Flaw**: Identical plaintexts produce identical ciphertexts. Leaks patterns (e.g., ECB Penguin). Not recommended for data $> 1$ block. |
+| **CBC (Cipher Block Chaining)** | $C_i = E_K(P_i \oplus C_{i-1}), C_0 = \text{IV}$ | $P_i = D_K(C_i) \oplus C_{i-1}$ | Highly secure with random IV. Sequential encryption (cannot parallelize). 1-bit ciphertext error corrupts $P_i$ and flips 1 bit in $P_{i+1}$. |
+| **CFB (Cipher Feedback)** | $C_i = P_i \oplus E_K(C_{i-1}), C_0 = \text{IV}$ | $P_i = C_i \oplus E_K(C_{i-1})$ | Converts block cipher to stream cipher. Uses ONLY the block cipher encryption function for both encryption and decryption. |
+| **OFB (Output Feedback)** | $O_i = E_K(O_{i-1}), C_i = P_i \oplus O_i$ | $O_i = E_K(O_{i-1}), P_i = C_i \oplus O_i$ | Keystream independent of plaintext/ciphertext. Bit errors do NOT propagate. Vulnerable to keystream reuse if IV repeated. |
+| **CTR (Counter Mode)** | $C_i = P_i \oplus E_K(\text{Counter}_i)$ | $P_i = C_i \oplus E_K(\text{Counter}_i)$ | **Best modern mode**: High-speed, 100% parallelizable for both encryption and decryption, random access to any block, provably secure. |
+
+#### 2.4 Asymmetric (Public-Key) Cryptosystems
+- **Diffie-Hellman Key Exchange Protocol (1976)**:
+  - First public-key protocol; establishes a shared secret over an insecure channel.
+  - **Mathematical Basis**: Hardness of the **Discrete Logarithm Problem (DLP)** in $\mathbb{Z}_q^*$: given $\alpha$ and $Y \equiv \alpha^X \pmod q$, finding $X$ is computationally infeasible for large prime $q$.
+  - **Protocol Execution**:
+    1. Global public parameters: Prime $q$, primitive root $\alpha < q$.
+    2. Alice picks private $X_A < q$, transmits public $Y_A = \alpha^{X_A} \pmod q$.
+    3. Bob picks private $X_B < q$, transmits public $Y_B = \alpha^{X_B} \pmod q$.
+    4. Alice computes: $K = (Y_B)^{X_A} \pmod q$.
+    5. Bob computes: $K = (Y_A)^{X_B} \pmod q$.
+    6. Since $(Y_B)^{X_A} \equiv (\alpha^{X_B})^{X_A} \equiv \alpha^{X_A X_B} \equiv (Y_A)^{X_B} \pmod q$, both arrive at the exact same key $K$!
+  - **Man-in-the-Middle (MITM) Vulnerability**: An active attacker (Darth) can intercept Alice's $Y_A$, send $Y_D$ to Bob, and intercept Bob's $Y_B$, sending $Y_D$ to Alice, decrypting and re-encrypting all traffic undetected! Countermeasure: Digital certificates & mutual digital signature authentication.
+- **The RSA Cryptosystem (Rivest, Shamir, Adleman - 1978)**:
+  - **Mathematical Basis**: **Integer Factorization Problem (IFP)**. Multiplying two large primes $p$ and $q$ is easy ($O(\log^2 n)$), but factoring their product $n$ is computationally intractable ($O(e^{\sqrt{\ln n \ln \ln n}})$ via General Number Field Sieve).
+  - **Rigorous Euler's Totient Proof**:
+    Euler's Theorem: If $\gcd(M, n) = 1$, then $M^{\phi(n)} \equiv 1 \pmod n$.
+    Since $e \cdot d \equiv 1 \pmod{\phi(n)}$, we have $e \cdot d = 1 + k \cdot \phi(n)$ for some integer $k$.
+    $$C^d \equiv (M^e)^d \equiv M^{ed} \equiv M^{1 + k\phi(n)} \equiv M \cdot (M^{\phi(n)})^k \equiv M \cdot (1)^k \equiv M \pmod n$$
+- **ElGamal Cryptosystem**:
+  - Uses randomness (ephemeral key $k$) for every message block; protects against replay and chosen-plaintext attacks. Ciphertext size is double the plaintext size ($C = (C_1, C_2)$).
+- **Elliptic Curve Cryptography (ECC)**:
+  - Operates over points on an elliptic curve: $y^2 = x^3 + ax + b \pmod p$ with non-singular condition $4a^3 + 27b^2 \neq 0 \pmod p$.
+  - Points form an abelian group under geometric chord-and-tangent addition.
+  - **ECDLP (Elliptic Curve Discrete Logarithm Problem)**: Given base point $G$ and public point $Q = kG$, finding the scalar integer $k$ is exponentially harder than standard factoring.
+  - **Key Advantage**: A 256-bit ECC key offers equivalent cryptographic strength to a **3072-bit RSA key**, dramatically reducing computation, bandwidth, and battery drain in mobile and IoT applications.
+
+---
+
+### 2. 📐 Rigorous Derivations & Mathematical Foundations
+
+1. **RSA Key Generation & Extended Euclidean Algorithm**:
+   - Given primes $p$ and $q$:
+     $$n = p \cdot q, \quad \phi(n) = (p - 1)(q - 1)$$
+   - Choose public exponent $e$ such that:
+     $$\gcd(e, \phi(n)) = 1 \quad \text{and} \quad 1 < e < \phi(n)$$
+   - Compute private key $d$ using the Extended Euclidean Algorithm:
+     $$e \cdot d + \phi(n) \cdot y = 1 \implies d = e^{-1} \pmod{\phi(n)}$$
+   - Encryption of plaintext $M < n$:
+     $$C = M^e \pmod n$$
+   - Decryption of ciphertext $C$:
+     $$M = C^d \pmod n$$
+
+2. **Diffie-Hellman Shared Key Derivation**:
+   - Public values: Prime $q$, base generator $\alpha$ (where $\alpha$ is a primitive root of $q$).
+   - Alice chooses $X_A \in [1, q-1]$, sends $Y_A = \alpha^{X_A} \pmod q$.
+   - Bob chooses $X_B \in [1, q-1]$, sends $Y_B = \alpha^{X_B} \pmod q$.
+   - Alice calculates: $K_A = (Y_B)^{X_A} \pmod q = (\alpha^{X_B})^{X_A} = \alpha^{X_B X_A} \pmod q$.
+   - Bob calculates: $K_B = (Y_A)^{X_B} \pmod q = (\alpha^{X_A})^{X_B} = \alpha^{X_A X_B} \pmod q$.
+   - Since exponentiation is commutative: $K_A = K_B = K$.
+
+---
+
+### 3. 💡 Fully Worked Numerical Examples (Past University Papers)
+
+#### Worked Numerical 1: Complete RSA Key Generation, Encryption & Decryption
+- **Given Parameters**: Primes $p = 7, q = 11$, public exponent $e = 13$, Plaintext message $M = 9$.
+- **Step 1: Compute Modulus $n$**:
+  $$n = p \times q = 7 \times 11 = 77$$
+- **Step 2: Compute Euler's Totient $\phi(n)$**:
+  $$\phi(n) = (p - 1) \times (q - 1) = (7 - 1) \times (11 - 1) = 6 \times 10 = 60$$
+- **Step 3: Verify Public Key $e$**:
+  $$\gcd(13, 60) = 1 \quad \checkmark$$
+- **Step 4: Compute Private Exponent $d$ via Extended Euclidean Algorithm**:
+  We solve $13d \equiv 1 \pmod{60}$:
+  Using $d \cdot 13 - k \cdot 60 = 1$:
+  - $60 = 4 \times 13 + 8$
+  - $13 = 1 \times 8 + 5$
+  - $8 = 1 \times 5 + 3$
+  - $5 = 1 \times 3 + 2$
+  - $3 = 1 \times 2 + 1$
+  Back-substituting yields $d = 37$ (since $13 \times 37 = 481 = 8 \times 60 + 1 \equiv 1 \pmod{60}$).
+- **Step 5: Encrypt Plaintext $M = 9$**:
+  $$C = M^e \pmod n = 9^{13} \pmod{77}$$
+  Using square-and-multiply:
+  - $9^1 \equiv 9$
+  - $9^2 \equiv 81 \equiv 4 \pmod{77}$
+  - $9^4 \equiv 4^2 \equiv 16 \pmod{77}$
+  - $9^8 \equiv 16^2 \equiv 256 \equiv 25 \pmod{77}$
+  - $9^{13} = 9^8 \times 9^4 \times 9^1 \equiv 25 \times 16 \times 9 = 400 \times 9 \equiv 15 \times 9 = 135 \equiv 58 \pmod{77}$.
+  $$\mathbf{C = 58}$$
+- **Step 6: Decrypt Ciphertext $C = 58$**:
+  $$M = C^d \pmod n = 58^{37} \pmod{77} = 9 \quad \checkmark$$
+
+#### Worked Numerical 2: Diffie-Hellman Key Agreement Trace
+- **Given**: Prime $q = 353$, primitive root $\alpha = 3$, Alice's private key $X_A = 97$, Bob's private key $X_B = 233$.
+- **Step 1: Alice's Public Key**:
+  $$Y_A = 3^{97} \pmod{353} = 40$$
+- **Step 2: Bob's Public Key**:
+  $$Y_B = 3^{233} \pmod{353} = 248$$
+- **Step 3: Alice Computes Shared Secret**:
+  $$K = (Y_B)^{X_A} \pmod q = 248^{97} \pmod{353} = 160$$
+- **Step 4: Bob Computes Shared Secret**:
+  $$K = (Y_A)^{X_B} \pmod q = 40^{233} \pmod{353} = 160$$
+  Both parties agree on the identical session key $\mathbf{K = 160}$!
+
+---
+
+### 4. 🏆 University Examination Q&As (High-Probability 5M & 10M Questions)
+
+- **Q1 (10 Marks): Explain the detailed structure of AES (Rijndael). Describe all four round transformations with diagrams and explain why MixColumns is omitted in the final round.**
+  **Model Answer**:
+  1. *Architecture*: AES is a Substitution-Permutation Network (SPN) with a 128-bit block size divided into a $4 \times 4$ byte state array. Unlike DES, it does not use a Feistel structure; all 128 bits are transformed simultaneously in each round.
+  2. *Transformations*:
+     - **SubBytes**: S-box lookups in $GF(2^8)$ giving non-linear confusion resistant to differential cryptanalysis.
+     - **ShiftRows**: Linear permutation transposing row bytes across columns.
+     - **MixColumns**: Matrix multiplication in $GF(2^8)$ over column polynomials ensuring full diffusion across the 128-bit block within 2 rounds.
+     - **AddRoundKey**: Bitwise XOR with the 128-bit round subkey.
+  3. *Why MixColumns is omitted in final round*: To ensure the decryption structure is identical to encryption, omitting MixColumns in round $N_r$ avoids an extra inverse matrix multiplication step during key scheduling and allows lightweight hardware implementations to reuse round hardware.
+
+- **Q2 (10 Marks): What is the Meet-in-the-Middle attack? Explain why Double-DES (2DES) provides only 57-bit security instead of 112 bits, and how Triple-DES (3DES) solves this.**
+  **Model Answer**:
+  - Double-DES encrypts with two distinct 56-bit keys: $C = E_{K_2}(E_{K_1}(P))$.
+  - An attacker given known plaintext-ciphertext $(P, C)$ computes intermediate state $X = E_{K_1}(P)$ for all $2^{56}$ possible $K_1$ values and stores pairs $(X, K_1)$ in a hash table sorted by $X$.
+  - Next, the attacker computes $X' = D_{K_2}(C)$ for all $2^{56}$ possible $K_2$ values and searches for matches in the hash table.
+  - When $X = X'$, candidate key pair $(K_1, K_2)$ is verified with a second known pair $(P', C')$.
+  - Time complexity: $2^{56} + 2^{56} = 2^{57}$ operations! This completely neutralizes the extra 56-bit key.
+  - 3DES solves this using 3 stages (EDE): $C = E_{K_1}(D_{K_2}(E_{K_3}(P)))$. Breaking 3DES requires $2^{112}$ operations, which remains cryptographically secure.
+
+- **Q3 (5 Marks): Compare the 5 Block Cipher Modes of Operation (ECB, CBC, CFB, OFB, CTR) on parallelizability, error propagation, and security.**
+  *(Refer to the detailed comparison table in Section 2.3 above for full marks model answer).*
+
+- **Q4 (5 Marks): Explain the Man-in-the-Middle attack on Diffie-Hellman Key Exchange with an interaction diagram.**
+  **Model Answer**:
+  - Since standard Diffie-Hellman does not authenticate the communicating entities, Darth can intercept Alice's $Y_A$ and substitute his own $Y_{D1}$, establishing shared key $K_1 = \alpha^{X_A X_{D1}} \pmod q$ with Alice.
+  - Simultaneously, Darth intercepts Bob's $Y_B$ and sends $Y_{D2}$ to Bob, establishing shared key $K_2 = \alpha^{X_B X_{D2}} \pmod q$ with Bob.
+  - When Alice encrypts a message with $K_1$, Darth decrypts it, reads/modifies the plaintext, re-encrypts it with $K_2$, and forwards it to Bob.
+  - Countermeasure: Bind public keys to identities using X.509 Public Key Certificates and digital signatures.
+
+---
+
+### 5. 🔑 Key Takeaways & Exam Memory Hooks
+
+- 🧠 **Confusion vs Diffusion**:
+  - *Confusion* = S-Boxes (Hides key relationship).
+  - *Diffusion* = ShiftRows + MixColumns / Permutations (Spreads plaintext statistics).
+- 🧠 **AES Round Counts by Key Size**:
+  - 128-bit key $\to$ **10 rounds**
+  - 192-bit key $\to$ **12 rounds**
+  - 256-bit key $\to$ **14 rounds**
+- 🧠 **ECB Mnemonic: "Electronic Copy Bad"**:
+  - Never use ECB for multi-block messages—it preserves visual patterns!
+- ⚠️ **Professor's Exam Trap on RSA**:
+  - Always verify that $\gcd(e, \phi(n)) = 1$ when picking $e$! Choosing $e$ that shares a factor with $\phi(n)$ makes $d$ undefined and breaks the cryptosystem.
+"""
+
 CNS_RAW_MD = r"""# 📚 __CHAPTER_NAME__ — In-Depth Theoretical Mastery
 *Reference Syllabus: Cryptography & Network Security | Textbooks: William Stallings • Behrouz A. Forouzan*
 
@@ -455,6 +672,24 @@ def get_detailed_mastery_content(subject_name: str, chapter_name: str, book_exce
         }
 
     if "cryptography" in sub_lower or "security" in sub_lower or "cns" in sub_lower:
+        if "symmetric" in ch_lower or "cipher" in ch_lower or "unit 2" in ch_lower:
+            return {
+                "summary_md": CNS_UNIT2_RAW_MD.replace("__CHAPTER_NAME__", chapter_name),
+                "pitfalls": [
+                    "Using Double-DES (2DES) thinking it gives 112-bit security — Meet-in-the-Middle attack reduces it to 2^57 operations",
+                    "Selecting RSA public exponent e that shares a factor with phi(n), making modular inverse d undefined",
+                    "Using ECB mode for images or multi-block messages, which preserves visual plaintext structures and pixel patterns",
+                    "Assuming Diffie-Hellman provides authentication — it is vulnerable to Man-in-the-Middle without certificates"
+                ],
+                "formulas": [
+                    "n = p * q, phi(n) = (p - 1)(q - 1)",
+                    "e * d = 1 (mod phi(n))",
+                    "C = M^e mod n, M = C^d mod n",
+                    "K = (Y_B)^X_A mod q = (Y_A)^X_B mod q",
+                    "y^2 = x^3 + ax + b (mod p) [ECC Curve]"
+                ]
+            }
+
         return {
             "summary_md": CNS_RAW_MD.replace("__CHAPTER_NAME__", chapter_name),
             "pitfalls": [
